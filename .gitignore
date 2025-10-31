@@ -1,0 +1,19 @@
+# --- .gitignore ---
+# Data folders and models
+data/
+*.zip
+*.tar.gz
+*.h5
+*.pth
+*.pt
+
+# Python caches and virtual envs
+__pycache__/
+*.pyc
+.env/
+.venv/
+.ipynb_checkpoints/
+
+# DVC cache (if you use DVC)
+.dvc/
+.cache/
