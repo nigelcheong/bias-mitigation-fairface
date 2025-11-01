@@ -17,3 +17,4 @@ __pycache__/
 # DVC cache (if you use DVC)
 .dvc/
 .cache/
+/data
