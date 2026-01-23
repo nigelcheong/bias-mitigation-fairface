@@ -5,21 +5,21 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 
-# Get the directory where this script is located
-script_dir = Path(__file__).parent.absolute()
-project_root = script_dir.parent  # Go up one level to project root
-
-# Construct absolute paths
-zip_025 = project_root / 'data' / 'fairface-img-margin025-trainval.zip'
-zip_125 = project_root / 'data' / 'fairface-img-margin125-trainval.zip'
-
-# Extraction directories
-extract_dir_025 = project_root / 'data' / 'fairface_025'
-extract_dir_125 = project_root / 'data' / 'fairface_125'
+def get_paths(project_root):
+    """Construct and return all required paths."""
+    return {
+        'zip_025': project_root / 'data' / 'fairface-img-margin025-trainval.zip',
+        'zip_125': project_root / 'data' / 'fairface-img-margin125-trainval.zip',
+        'extract_dir_025': project_root / 'data' / 'fairface_025',
+        'extract_dir_125': project_root / 'data' / 'fairface_125',
+        'train_labels_csv': project_root / 'data' / 'fairface_label_train.csv',
+        'val_labels_csv': project_root / 'data' / 'fairface_label_val.csv',
+        'output_csv': project_root / 'data' / 'fairface_combined_labels.csv',
+    }
 
 def extract_zip(zip_path, extract_to):
     """
-    Extract a zip file to a specified directory if the directory does not already exist.
+    Extract a zip file to a specified directory if it doesn't already exist.
     
     Parameters:
     zip_path (Path or str): The path to the zip file.
@@ -36,22 +36,49 @@ def extract_zip(zip_path, extract_to):
     else:
         print(f"{extract_to} already exists, skipping extraction.")
 
-# Extract both datasets
-extract_zip(zip_025, extract_dir_025)
-extract_zip(zip_125, extract_dir_125)
+def load_and_combine_labels(train_csv, val_csv):
+    """Load and combine train/validation label CSVs."""
+    train_labels = pd.read_csv(train_csv)
+    val_labels = pd.read_csv(val_csv)
+    df = pd.concat([train_labels, val_labels], ignore_index=True)
+    return df
 
-# Load train and validation labels
-train_labels = pd.read_csv(project_root / 'data' / 'fairface_label_train.csv')
-val_labels = pd.read_csv(project_root / 'data' / 'fairface_label_val.csv')
+def main():
+    """Main preprocessing pipeline."""
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent.absolute()
+    project_root = script_dir.parent  # Go up one level to project root
+    
+    # Get all paths
+    paths = get_paths(project_root)
+    
+    print("=" * 60)
+    print("Starting FairFace Preprocessing Pipeline")
+    print("=" * 60)
+    
+    # Extract datasets
+    print("\n[1/3] Extracting datasets...")
+    extract_zip(paths['zip_025'], paths['extract_dir_025'])
+    extract_zip(paths['zip_125'], paths['extract_dir_125'])
+    
+    # Load and combine labels
+    print("\n[2/3] Loading and combining labels...")
+    df = load_and_combine_labels(paths['train_labels_csv'], paths['val_labels_csv'])
+    print(f"Combined dataset shape: {df.shape}")
+    print(f"\nFirst 5 rows:\n{df.head()}")
+    
+    # Check data quality
+    print("\n[3/3] Checking data quality...")
+    missing = df.isnull().sum()
+    print(f"Missing values:\n{missing[missing > 0] if missing.any() else 'None'}")
+    
+    # Save combined labels
+    df.to_csv(paths['output_csv'], index=False)
+    print(f"\n✓ Saved combined labels to {paths['output_csv']}")
+    print("=" * 60)
+    print("Preprocessing complete!")
+    print("=" * 60)
 
-# Combine for overall statistics
-df = pd.concat([train_labels, val_labels], ignore_index=True)
-print(df.shape)
-print(df.head())
-
-# Check for missing values
-print(df.isnull().sum())
-
-# Export the combined dataframe to a CSV file
-df.to_csv(project_root / 'data' / 'fairface_combined_labels.csv', index=False)
-print(f"Saved combined labels to {project_root / 'data' / 'fairface_combined_labels.csv'}")
+if __name__ == '__main__':
+    main()
+    
